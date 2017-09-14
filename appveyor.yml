@@ -57,14 +57,19 @@ cache:
 #on_finish:
 #    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 install:
+    - curl -sSLO https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip
+    - 7z x ninja-win.zip -oC:\Windows
+    - ninja --version
     - scripts/install_deps.bat
     - set ETHEREUM_DEPS_PATH=%APPVEYOR_BUILD_FOLDER%\deps
-before_build:
-    - if not exist build mkdir build
-    - cd build
-    - cmake -G "Visual Studio 14 2015 Win64" .. -DTESTS=%TESTS% -DEVMJIT=OFF
+before_build: |
+    if not exist build mkdir build
+    cd build
+    "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
+    echo %PATH%
+    cmake -G Ninja .. -DTESTS=%TESTS% -DEVMJIT=OFF
 build_script:
-    - msbuild cpp-ethereum.sln /p:Configuration=%CONFIGURATION% /m:%NUMBER_OF_PROCESSORS% /v:minimal
+    - ninja
     - cd %APPVEYOR_BUILD_FOLDER%
     - scripts\release.bat %CONFIGURATION% %ETHEREUM_DEPS_PATH% %TESTS%
 after_build:
