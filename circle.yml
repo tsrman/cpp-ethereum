@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ethereum/cpp-build-env:experimental
+      - image: ethereum/cpp-build-env
     working_directory: ~/cpp-ethereum
     steps:
       - checkout
@@ -70,4 +70,4 @@ jobs:
           name: "Code coverage"
           pwd: ~/cpp-ethereum/build
           command: |
-            bash <(curl -s https://codecov.io/bash) -X fix
+            codecov
