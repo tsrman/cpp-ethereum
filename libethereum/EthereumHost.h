@@ -134,7 +134,7 @@ private:
 
 	mutable RecursiveMutex x_sync;
 	mutable Mutex x_transactions;
-	std::unique_ptr<BlockChainSync> m_sync;
+	std::shared_ptr<BlockChainSync> m_sync;
 	std::atomic<time_t> m_lastTick = { 0 };
 
 	std::shared_ptr<EthereumHostDataFace> m_hostData;
