@@ -59,6 +59,8 @@ public:
 	void onPeerStatus(std::shared_ptr<EthereumPeer> _peer) override
 	{
 		RecursiveGuard l(m_syncMutex);
+		if (!m_sync)
+			return;
 		try
 		{
 			m_sync->onPeerStatus(_peer);
@@ -80,6 +82,8 @@ public:
 
 	void onPeerAborting() override
 	{
+		if (!m_sync)
+			return;
 		try
 		{
 			m_sync->onPeerAborting();
@@ -93,6 +97,8 @@ public:
 	void onPeerBlockHeaders(std::shared_ptr<EthereumPeer> _peer, RLP const& _headers) override
 	{
 		RecursiveGuard l(m_syncMutex);
+		if (!m_sync)
+			return;
 		try
 		{
 			m_sync->onPeerBlockHeaders(_peer, _headers);
@@ -108,6 +114,8 @@ public:
 	void onPeerBlockBodies(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
 	{
 		RecursiveGuard l(m_syncMutex);
+		if (!m_sync)
+			return;
 		try
 		{
 			m_sync->onPeerBlockBodies(_peer, _r);
@@ -123,6 +131,8 @@ public:
 	void onPeerNewHashes(std::shared_ptr<EthereumPeer> _peer, std::vector<std::pair<h256, u256>> const& _hashes) override
 	{
 		RecursiveGuard l(m_syncMutex);
+		if (!m_sync)
+			return;
 		try
 		{
 			m_sync->onPeerNewHashes(_peer, _hashes);
@@ -138,6 +148,8 @@ public:
 	void onPeerNewBlock(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
 	{
 		RecursiveGuard l(m_syncMutex);
+		if (!m_sync)
+			return;
 		try
 		{
 			m_sync->onPeerNewBlock(_peer, _r);
@@ -373,7 +385,7 @@ private:
 
 }
 
-EthereumHost::EthereumHost(BlockChain const& _ch, OverlayDB const& _db, TransactionQueue& _tq, BlockQueue& _bq, u256 _networkId):
+EthereumHost::EthereumHost(BlockChain const& _ch, OverlayDB const& _db, TransactionQueue& _tq, BlockQueue& _bq, u256 const& _networkId):
 	HostCapability<EthereumPeer>(),
 	Worker		("ethsync"),
 	m_chain		(_ch),
@@ -385,10 +397,17 @@ EthereumHost::EthereumHost(BlockChain const& _ch, OverlayDB const& _db, Transact
 {
 	// TODO: Composition would be better. Left like that to avoid initialization
 	//       issues as BlockChainSync accesses other EthereumHost members.
-	m_sync.reset(new BlockChainSync(*this));
+	// m_sync will be initialized in makeEthereumHost()
 	m_peerObserver = make_shared<EthereumPeerObserver>(m_sync, x_sync, m_tq);
 	m_latestBlockSent = _ch.currentHash();
 	m_tq.onImport([this](ImportResult _ir, h256 const& _h, h512 const& _nodeId) { onTransactionImported(_ir, _h, _nodeId); });
+}
+
+shared_ptr<EthereumHost> EthereumHost::makeEthereumHost(BlockChain const& _ch, OverlayDB const& _db, TransactionQueue& _tq, BlockQueue& _bq, u256 const& _networkId)
+{
+	shared_ptr<EthereumHost> ret{new EthereumHost(_ch, _db, _tq, _bq, _networkId)};
+	ret->m_sync.reset(new BlockChainSync(ret));
+	return ret;
 }
 
 EthereumHost::~EthereumHost()
