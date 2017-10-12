@@ -135,7 +135,6 @@ private:
 	bool m_newTransactions = false;
 	bool m_newBlocks = false;
 
-	mutable RecursiveMutex x_sync;
 	mutable Mutex x_transactions;
 	std::shared_ptr<BlockChainSync> m_sync;
 	std::atomic<time_t> m_lastTick = { 0 };

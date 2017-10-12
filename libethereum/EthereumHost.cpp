@@ -54,11 +54,10 @@ namespace
 class EthereumPeerObserver: public EthereumPeerObserverFace
 {
 public:
-	EthereumPeerObserver(shared_ptr<BlockChainSync> _sync, RecursiveMutex& _syncMutex, TransactionQueue& _tq): m_sync(_sync), m_syncMutex(_syncMutex), m_tq(_tq) {}
+	EthereumPeerObserver(shared_ptr<BlockChainSync> _sync, TransactionQueue& _tq): m_sync(_sync), m_tq(_tq) {}
 
 	void onPeerStatus(std::shared_ptr<EthereumPeer> _peer) override
 	{
-		RecursiveGuard l(m_syncMutex);
 		if (!m_sync)
 			return;
 		try
@@ -96,7 +95,6 @@ public:
 
 	void onPeerBlockHeaders(std::shared_ptr<EthereumPeer> _peer, RLP const& _headers) override
 	{
-		RecursiveGuard l(m_syncMutex);
 		if (!m_sync)
 			return;
 		try
@@ -113,7 +111,6 @@ public:
 
 	void onPeerBlockBodies(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
 	{
-		RecursiveGuard l(m_syncMutex);
 		if (!m_sync)
 			return;
 		try
@@ -130,7 +127,6 @@ public:
 
 	void onPeerNewHashes(std::shared_ptr<EthereumPeer> _peer, std::vector<std::pair<h256, u256>> const& _hashes) override
 	{
-		RecursiveGuard l(m_syncMutex);
 		if (!m_sync)
 			return;
 		try
@@ -147,7 +143,6 @@ public:
 
 	void onPeerNewBlock(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
 	{
-		RecursiveGuard l(m_syncMutex);
 		if (!m_sync)
 			return;
 		try
@@ -176,7 +171,6 @@ public:
 
 private:
 	shared_ptr<BlockChainSync> m_sync;
-	RecursiveMutex& m_syncMutex;
 	TransactionQueue& m_tq;
 };
 
@@ -398,7 +392,7 @@ EthereumHost::EthereumHost(BlockChain const& _ch, OverlayDB const& _db, Transact
 	// TODO: Composition would be better. Left like that to avoid initialization
 	//       issues as BlockChainSync accesses other EthereumHost members.
 	// m_sync will be initialized in makeEthereumHost()
-	m_peerObserver = make_shared<EthereumPeerObserver>(m_sync, x_sync, m_tq);
+	m_peerObserver = make_shared<EthereumPeerObserver>(m_sync, m_tq);
 	m_latestBlockSent = _ch.currentHash();
 	m_tq.onImport([this](ImportResult _ir, h256 const& _h, h512 const& _nodeId) { onTransactionImported(_ir, _h, _nodeId); });
 }
@@ -432,7 +426,6 @@ bool EthereumHost::ensureInitialised()
 
 void EthereumHost::reset()
 {
-	RecursiveGuard l(x_sync);
 	m_sync->abortSync();
 
 	m_latestBlockSent = h256();
@@ -442,7 +435,6 @@ void EthereumHost::reset()
 
 void EthereumHost::completeSync()
 {
-	RecursiveGuard l(x_sync);
 	m_sync->completeSync();
 }
 
